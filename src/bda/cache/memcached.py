@@ -65,9 +65,14 @@ class Memcached(object):
     
     def __setitem__(self, key, object):
         if PYLIBMC:
-            self._client.set(key, object, time=self.timeout,
-                             min_compress_len=1024000,
-                             compress_level=zlib.Z_BEST_SPEED)
+            try:
+                self._client.set(key, object, time=self.timeout,
+                                 min_compress_len=1024000,
+                                 compress_level=zlib.Z_BEST_SPEED)
+            except Exception as e:
+                if 'error 47' in str(e):  # seen libmemcached error
+                    self._client = self._client.clone()  # init client
+                raise
         else:
             self._client.set(key, object, time=self.timeout)
 
